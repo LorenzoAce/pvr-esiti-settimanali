@@ -48,79 +48,86 @@ export function Auth() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 p-4">
-            <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
-                {/* Logo e Nome App */}
-                <div className="flex flex-col items-center mb-6">
-                    <img src="/favicon.png" alt="Logo" className="w-16 h-16 mb-3" />
-                    <h2 className="text-2xl font-bold text-slate-800">Calcolatore Cauzioni</h2>
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
+            {/* Header */}
+            <header className="bg-white border-b border-slate-200">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
+                    <div className="flex items-center gap-3">
+                        <img src="/favicon.png" alt="Logo" className="w-8 h-8" />
+                        <h1 className="text-xl font-bold text-slate-800">Calcolatore Cauzioni</h1>
+                    </div>
                 </div>
-                
-                <h1 className="text-3xl font-bold text-slate-800 mb-2 text-center">
-                    {isSignUp ? 'Crea un Account' : 'Benvenuto'}
-                </h1>
-                <p className="text-slate-500 text-center mb-8">
-                    {isSignUp ? 'Registrati per iniziare' : 'Accedi per accedere alla tua dashboard'}
-                </p>
+            </header>
 
-                <form onSubmit={handleAuth} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                            <input
-                                type="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                placeholder="you@example.com"
-                            />
+            {/* Form Container */}
+            <div className="flex items-center justify-center p-4 min-h-[calc(100vh-4rem)]">
+                <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
+                    <h1 className="text-3xl font-bold text-slate-800 mb-2 text-center">
+                        {isSignUp ? 'Crea un Account' : 'Benvenuto'}
+                    </h1>
+                    <p className="text-slate-500 text-center mb-8">
+                        {isSignUp ? 'Registrati per iniziare' : 'Accedi per accedere alla tua dashboard'}
+                    </p>
+
+                    <form onSubmit={handleAuth} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                                <input
+                                    type="email"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    placeholder="you@example.com"
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                            <input
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                placeholder="••••••••"
-                            />
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                                <input
+                                    type="password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    placeholder="••••••••"
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    {message && (
-                        <div className={`p-3 rounded-lg text-sm ${message.includes('Check') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                            {message}
-                        </div>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {loading ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                            isSignUp ? 'Registrati' : 'Accedi'
+                        {message && (
+                            <div className={`p-3 rounded-lg text-sm ${message.includes('Check') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                                {message}
+                            </div>
                         )}
-                    </button>
-                </form>
 
-                <div className="mt-6 text-center text-sm text-slate-500">
-                    {isSignUp ? 'Hai già un account?' : "Non hai un account?"}{' '}
-                    <button
-                        onClick={() => setIsSignUp(!isSignUp)}
-                        className="text-blue-600 hover:underline font-medium"
-                    >
-                        {isSignUp ? 'Accedi' : 'Registrati'}
-                    </button>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {loading ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                isSignUp ? 'Registrati' : 'Accedi'
+                            )}
+                        </button>
+                    </form>
+
+                    <div className="mt-6 text-center text-sm text-slate-500">
+                        {isSignUp ? 'Hai già un account?' : "Non hai un account?"}{' '}
+                        <button
+                            onClick={() => setIsSignUp(!isSignUp)}
+                            className="text-blue-600 hover:underline font-medium"
+                        >
+                            {isSignUp ? 'Accedi' : 'Registrati'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
