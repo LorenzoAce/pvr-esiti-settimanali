@@ -51,19 +51,22 @@ export function Auth() {
         <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col">
             {/* Header */}
             <header className="bg-white border-b border-slate-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
-                    <div className="flex items-center gap-3">
-                        <img src="/favicon.png" alt="Logo" className="w-8 h-8" />
-                        <h1 className="text-xl font-bold text-slate-800">Calcolatore Cauzioni</h1>
-                    </div>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-center">
+                    <p className="text-sm text-slate-600 italic">per entrare dai 1 euro a Lorenzo</p>
                 </div>
             </header>
 
             {/* Form Container */}
             <div className="flex-1 flex items-center justify-center p-4">
                 <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
+                    {/* Logo e Nome App */}
+                    <div className="flex flex-col items-center mb-6">
+                        <img src="/favicon.png" alt="Logo" className="w-16 h-16 mb-3" />
+                        <h2 className="text-2xl font-bold text-slate-800">Calcolatore Cauzioni</h2>
+                    </div>
+
                     <h1 className="text-3xl font-bold text-slate-800 mb-2 text-center">
-                        {isSignUp ? 'Crea un Account' : 'Benvenuto'}
+                        {isSignUp ? 'Crea un Account' : 'Accedi'}
                     </h1>
                     <p className="text-slate-500 text-center mb-8">
                         {isSignUp ? 'Registrati per iniziare' : 'Accedi per accedere alla tua dashboard'}
