@@ -48,7 +48,7 @@ export function Auth() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col">
             {/* Header */}
             <header className="bg-white border-b border-slate-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
@@ -60,7 +60,7 @@ export function Auth() {
             </header>
 
             {/* Form Container */}
-            <div className="flex items-center justify-center p-4 min-h-[calc(100vh-4rem)]">
+            <div className="flex-1 flex items-center justify-center p-4">
                 <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
                     <h1 className="text-3xl font-bold text-slate-800 mb-2 text-center">
                         {isSignUp ? 'Crea un Account' : 'Benvenuto'}
@@ -132,7 +132,7 @@ export function Auth() {
             </div>
 
             {/* Footer */}
-            <footer className="bg-slate-800 border-t border-slate-700 py-4 mt-auto">
+            <footer className="bg-slate-800 border-t border-slate-700 py-4">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white text-sm">
                     <p>© 2025 Calcolatore Cauzioni by Lorenzo Acerbo. Tutti i diritti riservati.</p>
                     <p className="text-slate-400 mt-1">Beta version 1.00</p>
