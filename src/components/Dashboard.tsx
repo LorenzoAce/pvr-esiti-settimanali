@@ -72,6 +72,12 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     const [activeMenu, setActiveMenu] = useState<'home' | 'impostazioni' | 'profilo'>('home');
     const [showActions, setShowActions] = useState(false);
     const [importing, setImporting] = useState(false);
+    const [csvEnabled, setCsvEnabled] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('csvEnabled') === 'true';
+        }
+        return false;
+    });
 
     // New row state
     const [newName, setNewName] = useState('');
@@ -83,6 +89,12 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('csvEnabled', String(csvEnabled));
+        }
+    }, [csvEnabled]);
 
     const fetchData = async () => {
         try {
@@ -113,26 +125,28 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     };
 
     const handleExportCsv = () => {
-        const headers = ['name', 'negativo', 'cauzione', 'versamenti_settimanali', 'disponibilita'];
+        const headers = ['Utente', 'Negativo', 'Cauzione', 'Versamenti Settimanali', 'Disponibilità Conti Gioco', 'Risultato'];
         const rows = data.map(r => [
-            r.name,
-            r.negativo,
-            r.cauzione,
-            r.versamenti_settimanali,
-            r.disponibilita,
+            String(r.name ?? '').toUpperCase(),
+            Number(r.negativo ?? 0).toFixed(2),
+            Number(r.cauzione ?? 0).toFixed(2),
+            Number(r.versamenti_settimanali ?? 0).toFixed(2),
+            Number(r.disponibilita ?? 0).toFixed(2),
+            Number(calculateResult(Number(r.negativo ?? 0), Number(r.cauzione ?? 0), Number(r.versamenti_settimanali ?? 0))).toFixed(2),
         ]);
-        const csv = [headers.join(','), ...rows.map(row => row.map(v => {
+        const csvBody = [headers.join(','), ...rows.map(row => row.map(v => {
             const s = String(v ?? '');
             if (s.includes(',') || s.includes('"') || s.includes('\n')) {
                 return '"' + s.replace(/"/g, '""') + '"';
             }
             return s;
         }).join(','))].join('\n');
+        const csv = '\uFEFF' + csvBody;
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'calculations.csv';
+        a.download = `esiti_settimanali_${new Date().toISOString().slice(0,10)}.csv`;
         a.click();
         URL.revokeObjectURL(url);
     };
@@ -340,28 +354,86 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
 
             <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Actions */}
-                <div className="mb-6 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold text-slate-700 dark:text-white">Riepilogo</h2>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setIsAdding(true)}
-                            className="bg-[#1E43B8] hover:bg-[#1a3a9e] text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Nuova Voce
-                        </button>
-                        <button
-                            onClick={handleExportCsv}
-                            className="bg-[#555D69] text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm hover:opacity-90"
-                        >
-                            <Download className="w-4 h-4" />
-                            Esporta CSV
-                        </button>
-                        <label className="bg-[#555D69] text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm hover:opacity-90 cursor-pointer">
-                            <Upload className="w-4 h-4" />
-                            Importa CSV
-                            <input
-                                type="file"
+        <div className="mb-6 flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-slate-700 dark:text-white">Riepilogo</h2>
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={() => setIsAdding(true)}
+                    className="bg-[#1E43B8] hover:bg-[#1a3a9e] text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm"
+                >
+                    <Plus className="w-4 h-4" />
+                    Nuova Voce
+                </button>
+                
+                
+                <button
+                    onClick={async () => {
+                        const ExcelJS = await import('exceljs');
+                        const wb = new ExcelJS.Workbook();
+                        const ws = wb.addWorksheet('Esiti Settimanali');
+                        ws.columns = [
+                            { header: 'Utente', key: 'utente', width: 24 },
+                            { header: 'Negativo', key: 'negativo', width: 14 },
+                            { header: 'Cauzione', key: 'cauzione', width: 14 },
+                            { header: 'Versamenti Settimanali', key: 'vers', width: 22 },
+                            { header: 'Disponibilità Conti Gioco', key: 'disp', width: 28 },
+                            { header: 'Risultato', key: 'ris', width: 14 },
+                        ];
+                        data.forEach(r => {
+                            ws.addRow({
+                                utente: String(r.name ?? '').toUpperCase(),
+                                negativo: Number(r.negativo ?? 0),
+                                cauzione: Number(r.cauzione ?? 0),
+                                vers: Number(r.versamenti_settimanali ?? 0),
+                                disp: Number(r.disponibilita ?? 0),
+                                ris: Number(calculateResult(Number(r.negativo ?? 0), Number(r.cauzione ?? 0), Number(r.versamenti_settimanali ?? 0))),
+                            });
+                        });
+                        const header = ws.getRow(1);
+                        header.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                        header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E43B8' } };
+                        header.alignment = { vertical: 'middle', horizontal: 'center' };
+                        ws.eachRow(row => {
+                            row.eachCell(cell => {
+                                cell.border = {
+                                    top: { style: 'thin', color: { argb: 'FF888F96' } },
+                                    left: { style: 'thin', color: { argb: 'FF888F96' } },
+                                    bottom: { style: 'thin', color: { argb: 'FF888F96' } },
+                                    right: { style: 'thin', color: { argb: 'FF888F96' } },
+                                };
+                                if (typeof cell.value === 'number') {
+                                    cell.numFmt = '#,##0.00';
+                                    cell.alignment = { horizontal: 'right' };
+                                }
+                            });
+                        });
+                        const buf = await wb.xlsx.writeBuffer();
+                        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `esiti_settimanali_${new Date().toISOString().slice(0,10)}.xlsx`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    }}
+                    className="bg-[#079765] hover:bg-[#067a51] text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm"
+                >
+                    <Download className="w-4 h-4" />
+                    Esporta EXCEL
+                </button>
+                <button
+                    onClick={handleExportCsv}
+                    disabled={!csvEnabled}
+                    className="bg-[#555D69] text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <Download className="w-4 h-4" />
+                    Esporta CSV
+                </button>
+                <label className="bg-[#555D69] text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm hover:opacity-90 cursor-pointer">
+                    <Upload className="w-4 h-4" />
+                    Importa CSV
+                    <input
+                        type="file"
                                 accept=".csv"
                                 className="sr-only"
                                 onChange={(ev) => {
@@ -496,14 +568,22 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                 <div className="px-4 py-4 border-t border-slate-800">
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm">Colonna Azioni</span>
-                                        <label className="inline-flex items-center cursor-pointer">
+                                        <label className="relative inline-flex items-center w-12 h-6 cursor-pointer">
                                             <input type="checkbox" className="sr-only peer" checked={showActions} onChange={(e) => setShowActions(e.target.checked)} />
-                                            <div className="w-10 h-5 bg-slate-700 peer-checked:bg-green-500 rounded-full transition-all relative">
-                                                <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-all peer-checked:left-5" />
-                                            </div>
+                                            <span className="block w-12 h-6 rounded-full bg-slate-700 transition-colors peer-checked:bg-green-500"></span>
+                                            <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-6"></span>
                                         </label>
                                     </div>
                                     <p className="text-xs text-slate-400 mt-2">Di default è disabilitata.</p>
+                                    <div className="flex items-center justify-between mt-4">
+                                        <span className="text-sm">Button Esporta CSV</span>
+                                        <label className="relative inline-flex items-center w-12 h-6 cursor-pointer">
+                                            <input type="checkbox" className="sr-only peer" checked={csvEnabled} onChange={(e) => setCsvEnabled(e.target.checked)} />
+                                            <span className="block w-12 h-6 rounded-full bg-slate-700 transition-colors peer-checked:bg-green-500"></span>
+                                            <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-6"></span>
+                                        </label>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-2">Di default è disabilitato.</p>
                                 </div>
                             )}
                         </div>
