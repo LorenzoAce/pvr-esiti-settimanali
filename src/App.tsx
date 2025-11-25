@@ -55,7 +55,7 @@ function App() {
   }
 
   if (!session) {
-    return <Auth />;
+    return <Auth theme={theme} onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />;
   }
 
   return <Dashboard theme={theme} onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />;

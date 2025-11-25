@@ -324,10 +324,11 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
 
             {/* Header */}
             <header className="bg-white dark:bg-[#2A3543] border-b border-slate-200 dark:border-[#2A3543] sticky top-0 z-10">
-                <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setSidebarOpen(true)} className="bg-[#555D69] text-white border-[0.5px] border-[#888F96] p-2 rounded-md hover:opacity-90">
+                        <button onClick={() => setSidebarOpen(true)} className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] px-2 py-1 rounded-md flex items-center gap-2 text-sm font-medium`}>
                             <Menu className="w-5 h-5" />
+                            <span>Menu</span>
                         </button>
                         <img src="/logo-vincitu.png" alt="Logo" className="h-12 w-auto object-contain" />
                         
@@ -335,7 +336,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                     <div className="flex items-center gap-2">
                         <button
                             onClick={onToggleTheme}
-                            className="bg-[#555D69] text-white border-[0.5px] border-[#888F96] flex items-center gap-2 text-sm font-medium transition-colors px-2 py-1 rounded-md hover:opacity-90"
+                            className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] flex items-center gap-2 text-sm font-medium transition-colors px-2 py-1 rounded-md`}
                             title="Tema"
                         >
                             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -343,7 +344,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                         </button>
                         <button
                             onClick={handleLogout}
-                            className="bg-[#555D69] text-white border-[0.5px] border-[#888F96] flex items-center gap-2 text-sm font-medium transition-colors px-2 py-1 rounded-md hover:opacity-90"
+                            className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] flex items-center gap-2 text-sm font-medium transition-colors px-2 py-1 rounded-md`}
                         >
                             <LogOut className="w-4 h-4" />
                             Esci
@@ -352,7 +353,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                 </div>
             </header>
 
-            <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
                 {/* Actions */}
         <div className="mb-6 flex justify-between items-center">
             <h2 className="text-lg font-semibold text-slate-700 dark:text-white">Riepilogo</h2>
@@ -424,12 +425,12 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                 <button
                     onClick={handleExportCsv}
                     disabled={!csvEnabled}
-                    className="bg-[#555D69] text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                     <Download className="w-4 h-4" />
                     Esporta CSV
                 </button>
-                <label className="bg-[#555D69] text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm hover:opacity-90 cursor-pointer">
+                <label className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm cursor-pointer`}>
                     <Upload className="w-4 h-4" />
                     Importa CSV
                     <input
@@ -453,7 +454,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                         <div className="bg-[#1F293B] text-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#1F293B]">
                             <div className="px-6 py-4 flex justify-between items-center">
                                 <h3 className="font-semibold text-white">Aggiungi Nuova Voce</h3>
-                                <button onClick={() => setIsAdding(false)} className="bg-[#555D69] text-white border-[0.5px] border-[#888F96] px-2 py-1 rounded-md hover:opacity-90">
+                                <button onClick={() => setIsAdding(false)} className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] px-2 py-1 rounded-md`}>
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -522,13 +523,13 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                     <button
                                         type="button"
                                         onClick={() => setIsAdding(false)}
-                                        className="px-4 py-2 bg-[#555D69] text-white border-[0.5px] border-[#888F96] rounded-lg font-medium transition-colors hover:opacity-90"
+                                        className={`px-4 py-2 ${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] rounded-lg font-medium transition-colors`}
                                     >
                                         Annulla
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 bg-[#1E43B8] hover:bg-[#1a3a9e] text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                                        className={`px-4 py-2 ${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#1E43B8] hover:bg-[#1a3a9e]'} text-white rounded-lg font-medium transition-colors flex items-center gap-2`}
                                     >
                                         <Save className="w-4 h-4" />
                                         Salva
@@ -546,7 +547,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                         <div className="relative z-10 w-64 h-full bg-slate-900 text-white shadow-2xl">
                             <div className="flex items-center justify-between px-4 h-16 border-b border-slate-800">
                                 <span className="font-semibold">Menu</span>
-                                <button onClick={() => setSidebarOpen(false)} className="bg-[#555D69] text-white border-[0.5px] border-[#888F96] px-2 py-1 rounded-md hover:opacity-90">
+                                <button onClick={() => setSidebarOpen(false)} className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] px-2 py-1 rounded-md`}>
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -676,7 +677,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                                 <td className="px-6 py-4 text-center">
                                                     <button
                                                         onClick={() => handleDelete(row.id)}
-                                                        className="bg-[#555D69] text-white border-[0.5px] border-[#888F96] transition-colors p-1 rounded-md hover:opacity-90"
+                                                        className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] transition-colors p-1 rounded-md`}
                                                         title="Elimina"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
