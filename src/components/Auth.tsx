@@ -52,7 +52,7 @@ export function Auth({ theme, onToggleTheme }: { theme: 'light' | 'dark'; onTogg
             {/* Header */}
             <header className="bg-white border-b border-slate-200 dark:bg-[#2A3543] dark:border-[#2A3543]">
                 <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <p className="text-sm text-slate-600 italic dark:text-slate-100">per entrare dai 1 euro a Lorenzo</p>
+                    <p className="text-sm text-slate-600 italic dark:text-slate-100"></p>
                     <button
                         onClick={onToggleTheme}
                         className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] flex items-center gap-2 text-sm font-medium transition-colors px-2 py-1 rounded-md`}

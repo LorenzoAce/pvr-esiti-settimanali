@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { LogOut, Plus, Trash2, Save, X, Menu, Home, Settings, User, Download, Upload, Sun, Moon } from 'lucide-react';
+import { LogOut, Plus, Trash2, Save, X, Menu, Home, Settings, User, Download, Upload, Sun, Moon, Search as SearchIcon } from 'lucide-react';
 import { Toast, type ToastType } from './Toast';
 
 interface Calculation {
@@ -78,6 +78,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
         }
         return false;
     });
+    const [searchQuery, setSearchQuery] = useState('');
 
     // New row state
     const [newName, setNewName] = useState('');
@@ -123,6 +124,10 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     const showToast = (message: string, type: ToastType) => {
         setToast({ message, type });
     };
+
+    const filteredData = (searchQuery.trim().length > 0)
+        ? data.filter(row => String(row.name ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase()))
+        : data;
 
     const handleExportCsv = () => {
         const headers = ['Utente', 'Negativo', 'Cauzione', 'Versamenti Settimanali', 'Disponibilità Conti Gioco', 'Risultato'];
@@ -356,7 +361,16 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
             <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
                 {/* Actions */}
         <div className="mb-6 flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-slate-700 dark:text-white">Riepilogo</h2>
+            <div className="relative w-full max-w-xs">
+                <SearchIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cerca utente..."
+                    className={`w-full pl-9 pr-3 py-2 rounded-lg border focus:ring-2 focus:ring-slate-500 outline-none transition-all ${theme === 'light' ? 'bg-white text-black border-slate-300' : 'bg-[#4B5563] text-white border-[#1F293B]'}`}
+                />
+            </div>
             <div className="flex items-center gap-2">
                 <button
                     onClick={() => setIsAdding(true)}
@@ -621,8 +635,14 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                             Nessun dato presente. Aggiungi una nuova voce.
                                         </td>
                                     </tr>
+                                ) : filteredData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={showActions ? 7 : 6} className="px-6 py-8 text-center text-slate-400">
+                                            Nessun risultato per "{searchQuery}"
+                                        </td>
+                                    </tr>
                                 ) : (
-                                    data.map((row) => (
+                                    filteredData.map((row) => (
                                         <tr key={row.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
                                             <td className="px-4 py-2 text-white uppercase">
                                                 <EditableCell
