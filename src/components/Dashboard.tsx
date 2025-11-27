@@ -172,6 +172,14 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     }, [parents]);
 
     useEffect(() => {
+        if (Object.keys(expanded).length === 0 && data.length > 0) {
+            const next: Record<string, boolean> = {};
+            data.forEach(r => { next[r.id] = true; });
+            setExpanded(next);
+        }
+    }, [data, expanded]);
+
+    useEffect(() => {
         const channel = supabase.channel('calculations_rt')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'calculations' }, (payload) => {
                 const row = payload.new as Calculation;
@@ -259,11 +267,17 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     const collect = (id: string, lvl: Level, depth: number) => {
         const kids = childrenOf[id] || [];
         const allowed = allowedChildLevels(lvl);
-        const allowedKids = kids.filter(cid => allowed.includes((levels[cid] ?? 'user'))).sort((a, b) => {
-            const la = order.indexOf(levels[a] ?? 'user');
-            const lb = order.indexOf(levels[b] ?? 'user');
-            return la - lb;
-        });
+        const allowedKids = kids
+            .filter(cid => allowed.includes((levels[cid] ?? 'user')))
+            .sort((a, b) => {
+                const la = (levels[a] ?? 'user') as Level;
+                const lb = (levels[b] ?? 'user') as Level;
+                if (la === 'pvr' && lb !== 'pvr') return -1;
+                if (la !== 'pvr' && lb === 'pvr') return 1;
+                const ia = order.indexOf(la);
+                const ib = order.indexOf(lb);
+                return ia - ib;
+            });
         allowedKids.forEach(cid => {
             const childRow = byId[cid];
             if (childRow) {
@@ -537,6 +551,16 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
             if (lvl === 'pvr') return 'bg-amber-950/30';
             return 'bg-slate-800/30';
         }
+    };
+
+    const ancestorOfLevels = (id: string, targets: Level[]): { id: string; level: Level } | null => {
+        let cur = parents[id] ?? null;
+        while (cur) {
+            const cl = (levels[cur] ?? 'user') as Level;
+            if (targets.includes(cl)) return { id: cur, level: cl };
+            cur = parents[cur] ?? null;
+        }
+        return null;
     };
 
     return (
@@ -1016,12 +1040,14 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                     listToRender.map(({ row, depth }) => {
                                         const hasChildren = (childrenOf[row.id] || []).length > 0;
                                         const totals = hasChildren ? sumTree(row.id) : null;
+                                        const rowLevel = (levels[row.id] ?? 'user') as Level;
+                                        const owner = rowLevel === 'pvr' ? ancestorOfLevels(row.id, ['agente','master']) : null;
                                         return (
-                                        <tr key={row.id} className={`${levelRowBgClass(levels[row.id] ?? 'user')} hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group`}>
+                                        <tr key={row.id} className={`${levelRowBgClass(rowLevel)} hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group`}>
                                             <td className="px-4 py-2">
                                                 <span className={`inline-block px-2 py-1 text-xs rounded ${levelBadgeClass(levels[row.id] ?? 'user')}`}>{(levels[row.id] ?? 'user').toUpperCase()}</span>
                                             </td>
-                                            <td className={`px-4 py-2 ${theme === 'light' ? 'text-black' : 'text-white'} uppercase`}>
+                                            <td className={`px-4 py-2 ${theme === 'light' ? 'text-black' : 'text-white'} uppercase`} title={owner ? `Appartiene a: ${(byId[owner.id]?.name ?? '').toUpperCase()} (${owner.level.toUpperCase()})` : undefined}>
                                                 <div className="flex items-center gap-2" style={{ paddingLeft: depth * 16 }}>
                                                     {((childrenOf[row.id] || []).length > 0) ? (
                                                         <button
