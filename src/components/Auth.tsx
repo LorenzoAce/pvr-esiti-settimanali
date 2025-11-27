@@ -135,11 +135,11 @@ export function Auth({ theme, onToggleTheme }: { theme: 'light' | 'dark'; onTogg
                         </button>
                     </form>
 
-                    <div className="mt-6 text-center text-sm text-slate-300">
+                    <div className={`mt-6 text-center text-sm ${theme === 'light' ? 'text-black' : 'text-slate-300'}`}>
                         {isSignUp ? 'Hai già un account?' : "Non hai un account?"}{' '}
                         <button
                             onClick={() => setIsSignUp(!isSignUp)}
-                            className="text-white hover:underline font-medium"
+                            className={`${theme === 'light' ? 'text-black' : 'text-white'} hover:underline font-medium`}
                         >
                             {isSignUp ? 'Accedi' : 'Registrati'}
                         </button>

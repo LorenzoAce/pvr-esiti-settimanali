@@ -1021,7 +1021,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                             <td className="px-4 py-2">
                                                 <span className={`inline-block px-2 py-1 text-xs rounded ${levelBadgeClass(levels[row.id] ?? 'user')}`}>{(levels[row.id] ?? 'user').toUpperCase()}</span>
                                             </td>
-                                            <td className="px-4 py-2 text-white uppercase">
+                                            <td className={`px-4 py-2 ${theme === 'light' ? 'text-black' : 'text-white'} uppercase`}>
                                                 <div className="flex items-center gap-2" style={{ paddingLeft: depth * 16 }}>
                                                     {((childrenOf[row.id] || []).length > 0) ? (
                                                         <button
@@ -1040,7 +1040,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                                     onSave={(val) => handleUpdate(row.id, 'name', val)}
                                                     validate={(val) => (!val || val.toString().trim() === '') ? 'Il nome non può essere vuoto' : null}
                                                     onError={(msg) => showToast(msg, 'error')}
-                                                    className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-500 focus:ring-0 px-2 py-1 text-sm font-medium text-white uppercase outline-none transition-all"
+                                                    className={`w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-500 focus:ring-0 px-2 py-1 text-sm font-medium ${theme === 'light' ? 'text-black' : 'text-white'} uppercase outline-none transition-all`}
                                                 />
                                                 </div>
                                             </td>
@@ -1057,7 +1057,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                                     />
                                                 )}
                                             </td>
-                                            <td className="px-4 py-2 text-white">
+                                            <td className={`px-4 py-2 ${theme === 'light' ? 'text-black' : 'text-white'}`}>
                                                 {hasChildren ? (
                                                     <span className="font-mono block text-right">{totals!.cauzione.toFixed(2)}</span>
                                                 ) : (
@@ -1066,11 +1066,11 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                                         value={row.cauzione}
                                                         onSave={(val) => handleUpdate(row.id, 'cauzione', val)}
                                                         onError={(msg) => showToast(msg, 'error')}
-                                                        className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-500 focus:ring-0 px-2 py-1 text-sm text-white text-right font-mono outline-none transition-all"
+                                                        className={`w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-500 focus:ring-0 px-2 py-1 text-sm ${theme === 'light' ? 'text-black' : 'text-white'} text-right font-mono outline-none transition-all`}
                                                     />
                                                 )}
                                             </td>
-                                            <td className="px-4 py-2 text-white">
+                                            <td className={`px-4 py-2 ${theme === 'light' ? 'text-black' : 'text-white'}`}>
                                                 {hasChildren ? (
                                                     <span className="font-mono block text-right">{totals!.vers.toFixed(2)}</span>
                                                 ) : (
@@ -1079,11 +1079,11 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                                         value={row.versamenti_settimanali}
                                                         onSave={(val) => handleUpdate(row.id, 'versamenti_settimanali', val)}
                                                         onError={(msg) => showToast(msg, 'error')}
-                                                        className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-500 focus:ring-0 px-2 py-1 text-sm text-white text-right font-mono outline-none transition-all"
+                                                        className={`w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-500 focus:ring-0 px-2 py-1 text-sm ${theme === 'light' ? 'text-black' : 'text-white'} text-right font-mono outline-none transition-all`}
                                                     />
                                                 )}
                                             </td>
-                                            <td className="px-4 py-2 text-white">
+                                            <td className={`px-4 py-2 ${theme === 'light' ? 'text-black' : 'text-white'}`}>
                                                 {hasChildren ? (
                                                     <span className="font-mono block text-right">{totals!.disp.toFixed(2)}</span>
                                                 ) : (
@@ -1092,7 +1092,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                                         value={row.disponibilita}
                                                         onSave={(val) => handleUpdate(row.id, 'disponibilita', val)}
                                                         onError={(msg) => showToast(msg, 'error')}
-                                                        className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-500 focus:ring-0 px-2 py-1 text-sm text-white text-right font-mono outline-none transition-all"
+                                                        className={`w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-500 focus:ring-0 px-2 py-1 text-sm ${theme === 'light' ? 'text-black' : 'text-white'} text-right font-mono outline-none transition-all`}
                                                     />
                                                 )}
                                             </td>
