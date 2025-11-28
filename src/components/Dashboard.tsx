@@ -134,6 +134,13 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     const [newParentId, setNewParentId] = useState<string>('');
     const [newVersInclude, setNewVersInclude] = useState<boolean>(true);
     const [selectedHierarchyId, setSelectedHierarchyId] = useState<string | null>(null);
+    const [hierarchyBarOpen, setHierarchyBarOpen] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            const raw = localStorage.getItem('hierarchyBarOpen');
+            return raw ? raw === 'true' : true;
+        }
+        return true;
+    });
 
     const expandAllUnder = useCallback((rootId: string) => {
         const visit = (id: string) => {
@@ -200,6 +207,12 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
             localStorage.setItem('versInclude', JSON.stringify(versInclude));
         }
     }, [versInclude]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('hierarchyBarOpen', String(hierarchyBarOpen));
+        }
+    }, [hierarchyBarOpen]);
 
     useEffect(() => {
         const channel = supabase.channel('calculations_rt')
@@ -971,23 +984,34 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
 
             <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
                 <div className={`${theme === 'light' ? 'bg-white/90 border-[#1E43B8]' : 'bg-[#1F293B]/90 border-white'} backdrop-blur-sm border px-3 py-2 rounded-2xl shadow-lg flex items-center gap-2 overflow-x-auto max-w-[90vw]`}>
-                    {data.filter(d => ['master','agente','collaboratore'].includes((levels[d.id] ?? 'user'))).sort((a,b) => String(a.name ?? '').localeCompare(String(b.name ?? ''))).map(d => (
-                        <button
-                            key={d.id}
-                            onClick={() => { setSelectedHierarchyId(d.id); expandAllUnder(d.id); }}
-                            className={`${selectedHierarchyId === d.id ? 'bg-[#1E43B8] text-white' : (theme === 'light' ? 'bg-slate-200 text-black' : 'bg-[#4B5563] text-white')} border-[0.5px] border-[#888F96] px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap`}
-                            title={`Mostra gerarchia di ${(String(d.name ?? '')).toUpperCase()}`}
-                        >
-                            {(String(d.name ?? '')).toUpperCase()}
-                        </button>
-                    ))}
                     <button
-                        onClick={() => setSelectedHierarchyId(null)}
-                        className={`${theme === 'light' ? 'bg-slate-200 text-black' : 'bg-[#4B5563] text-white'} border-[0.5px] border-[#888F96] px-3 py-1.5 rounded-md text-xs font-medium`}
-                        title="Mostra tutti"
+                        onClick={() => setHierarchyBarOpen(!hierarchyBarOpen)}
+                        className={`${theme === 'light' ? 'bg-slate-200 text-black' : 'bg-[#4B5563] text-white'} border-[0.5px] border-[#888F96] p-1.5 rounded-md text-xs font-medium`}
+                        title={hierarchyBarOpen ? 'Nascondi barra' : 'Mostra barra'}
                     >
-                        Tutti
+                        <ChevronDown className={`w-4 h-4 transition-transform ${hierarchyBarOpen ? '' : 'rotate-180'}`} />
                     </button>
+                    {hierarchyBarOpen && (
+                        <>
+                            {data.filter(d => ['master','agente','collaboratore'].includes((levels[d.id] ?? 'user'))).sort((a,b) => String(a.name ?? '').localeCompare(String(b.name ?? ''))).map(d => (
+                                <button
+                                    key={d.id}
+                                    onClick={() => { setSelectedHierarchyId(d.id); expandAllUnder(d.id); }}
+                                    className={`${selectedHierarchyId === d.id ? 'bg-[#1E43B8] text-white' : (theme === 'light' ? 'bg-slate-200 text-black' : 'bg-[#4B5563] text-white')} border-[0.5px] border-[#888F96] px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap`}
+                                    title={`Mostra gerarchia di ${(String(d.name ?? '')).toUpperCase()}`}
+                                >
+                                    {(String(d.name ?? '')).toUpperCase()}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => setSelectedHierarchyId(null)}
+                                className={`${theme === 'light' ? 'bg-slate-200 text-black' : 'bg-[#4B5563] text-white'} border-[0.5px] border-[#888F96] px-3 py-1.5 rounded-md text-xs font-medium`}
+                                title="Mostra tutti"
+                            >
+                                Tutti
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
