@@ -111,6 +111,21 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     const [editParentId, setEditParentId] = useState<string>('');
     const [dbHierarchy, setDbHierarchy] = useState<boolean>(false);
 
+    const [versInclude, setVersInclude] = useState<Record<string, boolean>>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const raw = localStorage.getItem('versInclude');
+                return raw ? JSON.parse(raw) as Record<string, boolean> : {};
+            } catch {
+                return {};
+            }
+        }
+        return {};
+    });
+    const [versModal, setVersModal] = useState<null | { mode: 'add' | 'edit'; id?: string; value: number }>(null);
+    const [pendingAddRow, setPendingAddRow] = useState<null | (Omit<Calculation, 'id'> & { level?: Level; parent_id?: string | null })>(null);
+    const [pendingEdit, setPendingEdit] = useState<null | { id: string; value: number }>(null);
+
     // New row state
     const [newName, setNewName] = useState('');
     const [newNegativo, setNewNegativo] = useState('');
@@ -170,6 +185,12 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
             localStorage.setItem('parents', JSON.stringify(parents));
         }
     }, [parents]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('versInclude', JSON.stringify(versInclude));
+        }
+    }, [versInclude]);
 
     useEffect(() => {
         const channel = supabase.channel('calculations_rt')
@@ -240,7 +261,8 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
         const r = byId[id];
         const n = Number(r?.negativo ?? 0);
         const c = Number(r?.cauzione ?? 0);
-        const v = Number(r?.versamenti_settimanali ?? 0);
+        const includeVers = versInclude[id] !== false;
+        const v = includeVers ? Number(r?.versamenti_settimanali ?? 0) : 0;
         const d = Number(r?.disponibilita ?? 0);
         const rr = calculateResult(n, c, v);
         return { n, c, v, d, rr };
@@ -310,7 +332,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
             Number(r.cauzione ?? 0).toFixed(2),
             Number(r.versamenti_settimanali ?? 0).toFixed(2),
             Number(r.disponibilita ?? 0).toFixed(2),
-            Number(calculateResult(Number(r.negativo ?? 0), Number(r.cauzione ?? 0), Number(r.versamenti_settimanali ?? 0))).toFixed(2),
+            Number(valueOf(r.id).rr).toFixed(2),
         ]);
         const csvBody = [headers.join(','), ...rows.map(row => row.map(v => {
             const s = String(v ?? '');
@@ -327,6 +349,42 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
         a.download = `esiti_settimanali_${new Date().toISOString().slice(0,10)}.csv`;
         a.click();
         URL.revokeObjectURL(url);
+    };
+
+    const confirmVersModal = async (include: boolean) => {
+        try {
+            if (versModal?.mode === 'edit' && pendingEdit) {
+                const { id, value } = pendingEdit;
+                setVersInclude(prev => ({ ...prev, [id]: include }));
+                setData(data.map(item => item.id === id ? { ...item, versamenti_settimanali: value } : item));
+                const { error } = await supabase
+                    .from('calculations')
+                    .update({ versamenti_settimanali: value })
+                    .eq('id', id);
+                if (error) throw error;
+            } else if (versModal?.mode === 'add' && pendingAddRow) {
+                const { data: inserted, error } = await supabase
+                    .from('calculations')
+                    .insert([pendingAddRow])
+                    .select()
+                    .single();
+                if (error) throw error;
+                setData([inserted, ...data]);
+                setLevels(prev => ({ ...prev, [inserted.id]: (dbHierarchy ? (inserted.level as Level) ?? newLevel : newLevel) }));
+                setParents(prev => ({ ...prev, [inserted.id]: (dbHierarchy ? (inserted.parent_id as string | null) ?? (newParentId || null) : (newParentId || null)) }));
+                setVersInclude(prev => ({ ...prev, [inserted.id]: include }));
+                setIsAdding(false);
+                resetForm();
+                showToast('Voce aggiunta con successo', 'success');
+            }
+        } catch (error) {
+            console.error('Error persisting versamenti choice:', error);
+            showToast('Errore durante il salvataggio', 'error');
+        } finally {
+            setVersModal(null);
+            setPendingAddRow(null);
+            setPendingEdit(null);
+        }
     };
 
     const parseCsvLine = (line: string) => {
@@ -441,20 +499,8 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                 newRow.parent_id = newParentId || null;
             }
 
-            const { data: inserted, error } = await supabase
-                .from('calculations')
-                .insert([newRow])
-                .select()
-                .single();
-
-            if (error) throw error;
-
-            setData([inserted, ...data]);
-            setLevels(prev => ({ ...prev, [inserted.id]: (dbHierarchy ? (inserted.level as Level) ?? newLevel : newLevel) }));
-            setParents(prev => ({ ...prev, [inserted.id]: (dbHierarchy ? (inserted.parent_id as string | null) ?? (newParentId || null) : (newParentId || null)) }));
-            setIsAdding(false);
-            resetForm();
-            showToast('Voce aggiunta con successo', 'success');
+            setPendingAddRow(newRow);
+            setVersModal({ mode: 'add', value: newRow.versamenti_settimanali });
         } catch (error) {
             console.error('Error adding row:', error);
             showToast('Errore durante il salvataggio', 'error');
@@ -484,22 +530,24 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
         const nextValue: string | number = isName
             ? String(value)
             : (field === 'negativo' ? -(Math.abs(numValue)) : numValue);
+        if (field === 'versamenti_settimanali') {
+            setPendingEdit({ id, value: Number(nextValue) });
+            setVersModal({ mode: 'edit', id, value: Number(nextValue) });
+            return;
+        }
 
-        setData(data.map(item =>
-            item.id === id ? { ...item, [field]: nextValue } : item
-        ));
+        setData(data.map(item => item.id === id ? { ...item, [field]: nextValue } : item));
 
         try {
             const { error } = await supabase
                 .from('calculations')
                 .update({ [field]: nextValue })
                 .eq('id', id);
-
             if (error) throw error;
         } catch (error) {
             console.error('Error updating row:', error);
             showToast('Errore durante l\'aggiornamento', 'error');
-            fetchData(); // Revert
+            fetchData();
         }
     };
 
@@ -650,7 +698,8 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                             const r = byId[id];
                             const n = Number(r?.negativo ?? 0);
                             const c = Number(r?.cauzione ?? 0);
-                            const v = Number(r?.versamenti_settimanali ?? 0);
+                            const includeVers = versInclude[id] !== false;
+                            const v = includeVers ? Number(r?.versamenti_settimanali ?? 0) : 0;
                             const d = Number(r?.disponibilita ?? 0);
                             const rr = calculateResult(n, c, v);
                             return { n, c, v, d, rr };
@@ -936,6 +985,30 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Versamenti Settimanali Modal */}
+                {versModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                        <div className="bg-[#1F293B] text-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#1F293B]">
+                            <div className="px-6 py-4 flex justify-between items-center">
+                                <h3 className="font-semibold text-white">Versamenti Settimanali</h3>
+                                <button onClick={() => { setVersModal(null); setPendingAddRow(null); setPendingEdit(null); }} className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] px-2 py-1 rounded-md`}>
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <p className={`${theme === 'light' ? 'text-black' : 'text-white'}`}>Includere i versamenti settimanali nel calcolo del risultato?</p>
+                                <div className="flex justify-end gap-3">
+                                    <button onClick={() => confirmVersModal(false)} className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg font-medium transition-colors`}>Non includere</button>
+                                    <button onClick={() => confirmVersModal(true)} className={`${theme === 'light' ? 'bg-[#079765] hover:bg-[#067a51]' : 'bg-[#079765] hover:bg-[#067a51]'} text-white border-[0.5px] border-[#888F96] px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2`}>
+                                        <Save className="w-4 h-4" />
+                                        Includi
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
