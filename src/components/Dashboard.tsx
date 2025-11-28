@@ -133,6 +133,16 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     const [newLevel, setNewLevel] = useState<Level>('user');
     const [newParentId, setNewParentId] = useState<string>('');
     const [newVersInclude, setNewVersInclude] = useState<boolean>(true);
+    const [selectedHierarchyId, setSelectedHierarchyId] = useState<string | null>(null);
+
+    const expandAllUnder = useCallback((rootId: string) => {
+        const visit = (id: string) => {
+            setExpanded(prev => ({ ...prev, [id]: true }));
+            const kids = Object.keys(parents).filter(cid => parents[cid] === id);
+            kids.forEach(k => visit(k));
+        };
+        visit(rootId);
+    }, [parents]);
 
     const fetchData = useCallback(async () => {
         try {
@@ -276,8 +286,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
         });
         return { negativo, cauzione, vers, disp, ris };
     };
-    const visibleList: Array<{ row: Calculation; depth: number }> = [];
-    const collect = (id: string, lvl: Level, depth: number) => {
+    const collect = (acc: Array<{ row: Calculation; depth: number }>, id: string, lvl: Level, depth: number) => {
         const kids = childrenOf[id] || [];
         const allowed = allowedChildLevels(lvl);
         const allowedKids = kids
@@ -294,25 +303,39 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
         allowedKids.forEach(cid => {
             const childRow = byId[cid];
             if (childRow) {
-                visibleList.push({ row: childRow, depth: depth + 1 });
+                acc.push({ row: childRow, depth: depth + 1 });
                 const cl = (levels[cid] ?? 'user') as Level;
-                if (expanded[cid]) collect(cid, cl, depth + 1);
+                if (expanded[cid]) collect(acc, cid, cl, depth + 1);
             }
         });
     };
-    const roots = data.filter(r => {
-        const pid = parents[r.id];
-        return !pid || !byId[pid];
-    }).sort((a, b) => {
-        const ia = order.indexOf(levels[a.id] ?? 'user');
-        const ib = order.indexOf(levels[b.id] ?? 'user');
-        return ia - ib;
-    });
-    roots.forEach(r => {
-        const lvl = levels[r.id] ?? 'user';
-        visibleList.push({ row: r, depth: 0 });
-        if (expanded[r.id]) collect(r.id, lvl, 0);
-    });
+    const computeVisible = () => {
+        const res: Array<{ row: Calculation; depth: number }> = [];
+        if (selectedHierarchyId) {
+            const r = byId[selectedHierarchyId];
+            if (r) {
+                res.push({ row: r, depth: 0 });
+                const lvl = (levels[r.id] ?? 'user') as Level;
+                if (expanded[r.id]) collect(res, r.id, lvl, 0);
+            }
+            return res;
+        }
+        const roots = data.filter(r => {
+            const pid = parents[r.id];
+            return !pid || !byId[pid];
+        }).sort((a, b) => {
+            const ia = order.indexOf(levels[a.id] ?? 'user');
+            const ib = order.indexOf(levels[b.id] ?? 'user');
+            return ia - ib;
+        });
+        roots.forEach(r => {
+            const lvl = levels[r.id] ?? 'user';
+            res.push({ row: r, depth: 0 });
+            if (expanded[r.id]) collect(res, r.id, lvl, 0);
+        });
+        return res;
+    };
+    const visibleList = computeVisible();
     const listToRender: Array<{ row: Calculation; depth: number }> = searchQuery.trim().length > 0
         ? filteredData.map(r => ({ row: r, depth: 0 }))
         : visibleList;
@@ -640,6 +663,8 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                 </button>
                 
                 
+
+                
                 <button
                     onClick={async () => {
                         const ExcelJS = await import('exceljs');
@@ -714,11 +739,11 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                             kids.forEach(k => write(k, depth + 1));
                         };
 
-                        const roots = data.filter(r => {
+                        const rootsIds: string[] = selectedHierarchyId ? [selectedHierarchyId] : data.filter(r => {
                             const pid = parents[r.id];
                             return !pid || !byId[pid];
-                        });
-                        roots.forEach(r => write(r.id, 0));
+                        }).map(r => r.id);
+                        rootsIds.forEach(id => write(id, 0));
                         ws.addTable({
                             name: 'EsitiSettimanali',
                             ref: 'A1',
@@ -804,12 +829,14 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                 disabled={importing}
                             />
                         </label>
-                    </div>
                 </div>
+            </div>
 
-                {/* Add Form Modal/Overlay */}
-                {isAdding && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            
+
+            {/* Add Form Modal/Overlay */}
+            {isAdding && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
                         <div className="bg-[#1F293B] text-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#1F293B]">
                             <div className="px-6 py-4 flex justify-between items-center">
                                 <h3 className="font-semibold text-white">Aggiungi Nuova Voce</h3>
@@ -940,10 +967,32 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                             </form>
                         </div>
                     </div>
-                )}
+            )}
 
-                {/* Edit Hierarchy Modal */}
-                {editHierarchyId && (
+            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
+                <div className={`${theme === 'light' ? 'bg-white/90 border-[#1E43B8]' : 'bg-[#1F293B]/90 border-white'} backdrop-blur-sm border px-3 py-2 rounded-2xl shadow-lg flex items-center gap-2 overflow-x-auto max-w-[90vw]`}>
+                    {data.filter(d => ['master','agente','collaboratore'].includes((levels[d.id] ?? 'user'))).sort((a,b) => String(a.name ?? '').localeCompare(String(b.name ?? ''))).map(d => (
+                        <button
+                            key={d.id}
+                            onClick={() => { setSelectedHierarchyId(d.id); expandAllUnder(d.id); }}
+                            className={`${selectedHierarchyId === d.id ? 'bg-[#1E43B8] text-white' : (theme === 'light' ? 'bg-slate-200 text-black' : 'bg-[#4B5563] text-white')} border-[0.5px] border-[#888F96] px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap`}
+                            title={`Mostra gerarchia di ${(String(d.name ?? '')).toUpperCase()}`}
+                        >
+                            {(String(d.name ?? '')).toUpperCase()}
+                        </button>
+                    ))}
+                    <button
+                        onClick={() => setSelectedHierarchyId(null)}
+                        className={`${theme === 'light' ? 'bg-slate-200 text-black' : 'bg-[#4B5563] text-white'} border-[0.5px] border-[#888F96] px-3 py-1.5 rounded-md text-xs font-medium`}
+                        title="Mostra tutti"
+                    >
+                        Tutti
+                    </button>
+                </div>
+            </div>
+
+            {/* Edit Hierarchy Modal */}
+            {editHierarchyId && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
                         <div className="bg-[#1F293B] text-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#1F293B]">
                             <div className="px-6 py-4 flex justify-between items-center">
