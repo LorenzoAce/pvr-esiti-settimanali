@@ -150,7 +150,7 @@ export function Auth({ theme, onToggleTheme }: { theme: 'light' | 'dark'; onTogg
             {/* Footer */}
             <footer className={`${theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-800 border-slate-700'} border-t py-4`}>
                 <div className={`w-full px-4 sm:px-6 lg:px-8 text-center text-sm ${theme === 'light' ? 'text-black' : 'text-white'}`}>
-                    <p>© 2025 PVR - Esiti Settimanali by Lorenzo Acerbo. Tutti i diritti riservati.</p>
+                    <p>© 2025 PVR - Esiti Settimanali by Desa Service S.r.l.s. Tutti i diritti riservati.</p>
                     <p className={`${theme === 'light' ? 'text-black' : 'text-slate-400'} mt-1`}>Beta version 1.00</p>
                 </div>
             </footer>

@@ -740,7 +740,8 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                             const kids = childrenOf[id] || [];
                             if (kids.length > 0) {
                                 const tot = sumTree(id);
-                                tableRows.push([lvl, name, tot.negativo, tot.cauzione, tot.vers, tot.disp, tot.ris]);
+                                const base = valueOf(id);
+                                tableRows.push([lvl, name, tot.negativo, base.c, tot.vers, tot.disp, tot.ris]);
                                 rowDepths.push(depth);
                                 rowHasChildren.push(true);
                             } else {
@@ -810,7 +811,21 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = `esiti_settimanali_${new Date().toISOString().slice(0,10)}.xlsx`;
+                        {
+                            const today = new Date().toISOString().slice(0,10);
+                            let prefix = 'tutti';
+                            if (selectedHierarchyId) {
+                                const lvl = String((levels[selectedHierarchyId] ?? 'user')).toLowerCase();
+                                const nm = String(byId[selectedHierarchyId]?.name ?? '').toLowerCase();
+                                const safeNm = nm
+                                    .normalize('NFD')
+                                    .replace(/[\u0300-\u036f]/g, '')
+                                    .replace(/[^a-z0-9]+/g, '_')
+                                    .replace(/^_+|_+$/g, '');
+                                prefix = `${safeNm}_${lvl}`;
+                            }
+                            a.download = `${prefix}_esiti_settimanali_${today}.xlsx`;
+                        }
                         a.click();
                         URL.revokeObjectURL(url);
                     }}
@@ -1219,17 +1234,13 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                                 )}
                                             </td>
                                             <td className={`px-4 py-2 ${theme === 'light' ? 'text-black' : 'text-white'}`}>
-                                                {hasChildren ? (
-                                                    <span className="font-mono block text-right">{totals!.cauzione.toFixed(2)}</span>
-                                                ) : (
-                                                    <EditableCell
-                                                        type="number"
-                                                        value={row.cauzione}
-                                                        onSave={(val) => handleUpdate(row.id, 'cauzione', val)}
-                                                        onError={(msg) => showToast(msg, 'error')}
-                                                        className={`w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-500 focus:ring-0 px-2 py-1 text-sm ${theme === 'light' ? 'text-black' : 'text-white'} text-right font-mono outline-none transition-all`}
-                                                    />
-                                                )}
+                                                <EditableCell
+                                                    type="number"
+                                                    value={row.cauzione}
+                                                    onSave={(val) => handleUpdate(row.id, 'cauzione', val)}
+                                                    onError={(msg) => showToast(msg, 'error')}
+                                                    className={`w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-500 focus:ring-0 px-2 py-1 text-sm ${theme === 'light' ? 'text-black' : 'text-white'} text-right font-mono outline-none transition-all`}
+                                                />
                                             </td>
                                             <td className={`px-4 py-2 ${theme === 'light' ? 'text-black' : 'text-white'}`}>
                                                 {hasChildren ? (
