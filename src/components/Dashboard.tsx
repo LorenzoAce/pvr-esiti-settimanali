@@ -86,6 +86,8 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     const [profileRegisteredAt, setProfileRegisteredAt] = useState<string>('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [userFirstName, setUserFirstName] = useState('');
+    const [userLastName, setUserLastName] = useState('');
     type AppRole = 'admin' | 'user';
     const [appUsers, setAppUsers] = useState<Array<{ id: string; email: string; role: AppRole; active?: boolean; created_at?: string }>>([]);
     const [inviteCodes, setInviteCodes] = useState<Array<{ id: string; code: string; active?: boolean; used_at?: string | null; used_by?: string | null }>>([]);
@@ -262,6 +264,8 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                 const row = (appUserRows && appUserRows[0]) as { first_name?: string | null; last_name?: string | null; birth_date?: string | null } | undefined;
                 setProfileFirstName(String(row?.first_name ?? ''));
                 setProfileLastName(String(row?.last_name ?? ''));
+                setUserFirstName(String(row?.first_name ?? ''));
+                setUserLastName(String(row?.last_name ?? ''));
                 const bd = row?.birth_date;
                 setProfileBirthDate(bd ? String(bd).substring(0, 10) : '');
             }
@@ -271,6 +275,10 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
             setProfileLoading(false);
         }
     }, []);
+
+    useEffect(() => {
+        fetchProfile();
+    }, [fetchProfile]);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -722,6 +730,11 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                         
                     </div>
                     <div className="flex items-center gap-2">
+                        {(userFirstName || userLastName) && (
+                            <span className={`${theme === 'light' ? 'text-black' : 'text-white'} text-sm px-2`}>
+                                Benvenuto {userFirstName} {userLastName}
+                            </span>
+                        )}
                         <button
                             onClick={onToggleTheme}
                             className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] flex items-center gap-2 text-sm font-medium transition-colors px-2 py-1 rounded-md`}
@@ -1327,6 +1340,8 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                                         };
                                                         const { error } = await supabase.from('app_users').update(update).eq('id', user.id);
                                                         if (error) throw error;
+                                                        setUserFirstName(profileFirstName || '');
+                                                        setUserLastName(profileLastName || '');
                                                         showToast('Profilo aggiornato', 'success');
                                                     } catch (err) { console.error(err); showToast('Errore aggiornando profilo', 'error'); }
                                                 }}
