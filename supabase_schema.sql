@@ -31,3 +31,28 @@ create policy "Authenticated can update calculations"
 create policy "Authenticated can delete calculations"
   on public.calculations for delete
   using (auth.role() = 'authenticated');
+
+create table if not exists public.archives (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  name text not null,
+  snapshot jsonb not null
+);
+
+alter table public.archives enable row level security;
+
+drop policy if exists "Authenticated can select archives" on public.archives;
+drop policy if exists "Authenticated can insert archives" on public.archives;
+drop policy if exists "Authenticated can delete archives" on public.archives;
+
+create policy "Authenticated can select archives"
+  on public.archives for select
+  using (auth.role() = 'authenticated');
+
+create policy "Authenticated can insert archives"
+  on public.archives for insert
+  with check (auth.role() = 'authenticated');
+
+create policy "Authenticated can delete archives"
+  on public.archives for delete
+  using (auth.role() = 'authenticated');

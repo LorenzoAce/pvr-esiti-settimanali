@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { LogOut, Plus, Trash2, Save, X, Menu, Home, Settings, User, Users, Download, Upload, Sun, Moon, Search as SearchIcon, ChevronRight, ChevronDown, GitBranch, Check, Minus, Shield, Wallet, Calculator } from 'lucide-react';
+import { LogOut, Plus, Trash2, Save, X, Menu, Home, Settings, User, Users, Download, Upload, Sun, Moon, Search as SearchIcon, ChevronRight, ChevronDown, GitBranch, Check, Minus, Shield, Wallet, Calculator, Archive } from 'lucide-react';
 import { Toast, type ToastType } from './Toast';
 
 interface Calculation {
@@ -93,14 +93,8 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     const [inviteCodes, setInviteCodes] = useState<Array<{ id: string; code: string; active?: boolean; used_at?: string | null; used_by?: string | null }>>([]);
     const [newInviteCode, setNewInviteCode] = useState('');
     const [newInviteActive, setNewInviteActive] = useState(true);
-    const [showActions, setShowActions] = useState(false);
-    const [importing, setImporting] = useState(false);
-    const [csvEnabled, setCsvEnabled] = useState<boolean>(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('csvEnabled') === 'true';
-        }
-        return false;
-    });
+    const [showActions] = useState(false);
+    
     const [levels, setLevels] = useState<Record<string, Level>>(() => {
         if (typeof window !== 'undefined') {
             try {
@@ -161,6 +155,11 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
         return true;
     });
 
+    const [archivesModalOpen, setArchivesModalOpen] = useState(false);
+    const [archives, setArchives] = useState<Array<{ id: string; name: string; created_at?: string }>>([]);
+    const [newArchiveName, setNewArchiveName] = useState('');
+    const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+
     const expandAllUnder = useCallback((rootId: string) => {
         const visit = (id: string) => {
             setExpanded(prev => ({ ...prev, [id]: true }));
@@ -186,8 +185,8 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                 const lvlMap: Record<string, Level> = {};
                 const pidMap: Record<string, string | null> = {};
                 (calculations || []).forEach((r: Calculation) => {
-                    lvlMap[r.id] = (r.level ?? (levels[r.id] ?? 'user')) as Level;
-                    pidMap[r.id] = (r.parent_id ?? (parents[r.id] ?? null));
+                    lvlMap[r.id] = (r.level ?? 'user') as Level;
+                    pidMap[r.id] = (r.parent_id ?? null);
                 });
                 setLevels(lvlMap);
                 setParents(pidMap);
@@ -197,7 +196,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
         } finally {
             setLoading(false);
         }
-    }, [levels, parents]);
+    }, []);
 
     useEffect(() => {
         fetchData();
@@ -253,6 +252,36 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
         }
     }, [fetchAppUsers]);
 
+    const fetchArchives = useCallback(async () => {
+        try {
+            const { data, error } = await supabase
+                .from('archives')
+                .select('id,name,created_at')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            setArchives((data || []).map(a => ({ id: String(a.id), name: String(a.name ?? ''), created_at: String(a.created_at ?? '') })));
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
+
+    const saveArchive = useCallback(async () => {
+        try {
+            const snapshot = { data, levels, parents, versInclude };
+            const name = newArchiveName && newArchiveName.trim() !== '' ? newArchiveName.trim() : `Archivio ${new Date().toLocaleString()}`;
+            const { error } = await supabase
+                .from('archives')
+                .insert([{ name, snapshot }]);
+            if (error) throw error;
+            setNewArchiveName('');
+            await fetchArchives();
+            showToast('Archivio salvato', 'success');
+        } catch (err) {
+            console.error(err);
+            showToast('Errore salvataggio archivio', 'error');
+        }
+    }, [data, levels, parents, versInclude, newArchiveName, fetchArchives]);
+
     const fetchProfile = useCallback(async () => {
         try {
             setProfileLoading(true);
@@ -302,11 +331,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
         cleanupSampleUsers();
     }, [cleanupSampleUsers]);
 
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('csvEnabled', String(csvEnabled));
-        }
-    }, [csvEnabled]);
+    
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -473,126 +498,11 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
 
     
 
-    const handleExportCsv = () => {
-        const byId: Record<string, Calculation> = {};
-        data.forEach(r => { byId[r.id] = r; });
-        const headers = ['Utente', 'Livello', 'Padre', 'Negativo', 'Cauzione', 'Versamenti Settimanali', 'Disponibilità Conti Gioco', 'Risultato'];
-        const rows = data.map(r => [
-            String(r.name ?? '').toUpperCase(),
-            String((levels[r.id] ?? 'user')).toUpperCase(),
-            String(parents[r.id] ? String(byId[parents[r.id]!]?.name ?? '').toUpperCase() : ''),
-            Number(r.negativo ?? 0).toFixed(2),
-            Number(r.cauzione ?? 0).toFixed(2),
-            Number(r.versamenti_settimanali ?? 0).toFixed(2),
-            Number(r.disponibilita ?? 0).toFixed(2),
-            Number(valueOf(r.id).rr).toFixed(2),
-        ]);
-        const csvBody = [headers.join(','), ...rows.map(row => row.map(v => {
-            const s = String(v ?? '');
-            if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-                return '"' + s.replace(/"/g, '""') + '"';
-            }
-            return s;
-        }).join(','))].join('\n');
-        const csv = '\uFEFF' + csvBody;
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `esiti_settimanali_${new Date().toISOString().slice(0,10)}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-    };
+    
 
     
 
-    const parseCsvLine = (line: string) => {
-        const result: string[] = [];
-        let cur = '';
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-            const c = line[i];
-            if (c === '"') {
-                if (inQuotes && line[i + 1] === '"') {
-                    cur += '"';
-                    i++;
-                } else {
-                    inQuotes = !inQuotes;
-                }
-            } else if (c === ',' && !inQuotes) {
-                result.push(cur);
-                cur = '';
-            } else {
-                cur += c;
-            }
-        }
-        result.push(cur);
-        return result;
-    };
-
-    const handleImportCsv = async (file: File) => {
-        try {
-            setImporting(true);
-            const text = await file.text();
-            const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-            if (lines.length < 2) {
-                showToast('File CSV vuoto o non valido', 'error');
-                return;
-            }
-            const headers = parseCsvLine(lines[0]).map(h => h.trim().toLowerCase());
-            const expected = ['name', 'negativo', 'cauzione', 'versamenti_settimanali', 'disponibilita'];
-            const ok = expected.every(h => headers.includes(h));
-            if (!ok) {
-                showToast('Header CSV non valido', 'error');
-                return;
-            }
-            const user = (await supabase.auth.getUser()).data.user;
-            if (!user) {
-                showToast('Utente non autenticato', 'error');
-                return;
-            }
-            const idx: Record<string, number> = {};
-            headers.forEach((h, i) => { idx[h] = i; });
-            const rows = lines.slice(1).map(line => parseCsvLine(line)).map(cols => {
-                const base: (Omit<Calculation, 'id'> & { level?: Level; parent_id?: string | null }) = {
-                    user_id: user.id,
-                    name: cols[idx['name']] ?? '',
-                    negativo: parseFloat((cols[idx['negativo']] ?? '0').replace(',', '.')) || 0,
-                    cauzione: parseFloat((cols[idx['cauzione']] ?? '0').replace(',', '.')) || 0,
-                    versamenti_settimanali: parseFloat((cols[idx['versamenti_settimanali']] ?? '0').replace(',', '.')) || 0,
-                    disponibilita: parseFloat((cols[idx['disponibilita']] ?? '0').replace(',', '.')) || 0,
-                };
-                const lvlIdx = idx['level'];
-                const pidIdx = idx['parent_id'];
-                if (dbHierarchy) {
-                    if (lvlIdx !== undefined) {
-                        const lv = String(cols[lvlIdx] ?? '').toLowerCase();
-                        if (['master','agente','collaboratore','pvr','user'].includes(lv)) base.level = lv as Level;
-                    }
-                    if (pidIdx !== undefined) {
-                        const pv = cols[pidIdx];
-                        base.parent_id = pv && pv.length ? pv : null;
-                    }
-                }
-                return base;
-            }).filter(r => String(r.name ?? '').trim().length > 0);
-            if (rows.length === 0) {
-                showToast('Nessuna riga valida da importare', 'error');
-                return;
-            }
-            const { data: inserted, error } = await supabase
-                .from('calculations')
-                .insert(rows)
-                .select();
-            if (error) throw error;
-            setData([...(inserted || []), ...data]);
-            showToast('Import CSV completato', 'success');
-        } catch {
-            showToast('Errore durante l\'import CSV', 'error');
-        } finally {
-            setImporting(false);
-        }
-    };
+    
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -797,6 +707,20 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                     <Plus className="w-4 h-4" />
                     <span className="hidden sm:inline">Nuova Voce</span>
                 </button>
+                <button
+                    onClick={saveArchive}
+                    className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm`}
+                >
+                    <Save className="w-4 h-4" />
+                    <span className="hidden sm:inline">Salva Archivio</span>
+                </button>
+                <button
+                    onClick={() => setConfirmResetOpen(true)}
+                    className={`bg-red-600 hover:bg-red-500 text-white border-[0.5px] border-[#888F96] px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm`}
+                >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Nuova Tabella</span>
+                </button>
                 
                 
 
@@ -957,29 +881,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                     <Download className="w-4 h-4" />
                     <span className="hidden sm:inline">Esporta EXCEL</span>
                 </button>
-                <button
-                    onClick={handleExportCsv}
-                    disabled={!csvEnabled}
-                    className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                    <Download className="w-4 h-4" />
-                    <span className="hidden sm:inline">Esporta CSV</span>
-                </button>
-                <label className={`${theme === 'light' ? 'bg-[#1F293B] hover:bg-[#1b2533]' : 'bg-[#555D69] hover:opacity-90'} text-white border-[0.5px] border-[#888F96] px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm cursor-pointer`}>
-                    <Upload className="w-4 h-4" />
-                    <span className="hidden sm:inline">Importa CSV</span>
-                    <input
-                        type="file"
-                                accept=".csv"
-                                className="sr-only"
-                                onChange={(ev) => {
-                                    const f = ev.target.files?.[0];
-                                    if (f) handleImportCsv(f);
-                                    ev.currentTarget.value = '';
-                                }}
-                                disabled={importing}
-                            />
-                        </label>
+                
                 </div>
             </div>
 
@@ -1445,6 +1347,92 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                     </div>
                 )}
 
+                {archivesModalOpen && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                        <div className="bg-[#1F293B] text-white rounded-xl shadow-2xl w-full max-w-[95vw] sm:max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#1F293B]">
+                            <div className="px-6 py-4 border-b border-[#1F293B] flex items-center justify-between">
+                                <h3 className="text-lg font-semibold">Archivio Tabelle</h3>
+                                <button onClick={() => setArchivesModalOpen(false)} className="p-2 rounded-md bg-[#555D69] text-white">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={newArchiveName}
+                                        onChange={(e) => setNewArchiveName(e.target.value)}
+                                        placeholder="Nome archivio"
+                                        className="w-full sm:flex-1 px-3 py-2 rounded-md bg-[#4B5563] border border-slate-700 text-white"
+                                    />
+                                    <button onClick={saveArchive} className="px-3 py-2 rounded-md bg-emerald-600 text-white text-sm flex items-center gap-2">
+                                        <Save className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Salva</span>
+                                    </button>
+                                </div>
+                                <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
+                                    {archives.map(a => (
+                                        <div key={a.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-3 py-2 rounded-md bg-slate-900 border border-slate-800">
+                                            <div className="flex items-center gap-3 flex-wrap">
+                                                <span className="text-sm font-medium">{a.name}</span>
+                                                {a.created_at && <span className="text-xs text-slate-400">{new Date(a.created_at).toLocaleString()}</span>}
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                                                <button
+                                                    onClick={async () => { try { const { data } = await supabase.from('archives').select('snapshot').eq('id', a.id).single(); if (data?.snapshot) { const blob = new Blob([JSON.stringify(data.snapshot, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${a.name.replace(/\s+/g,'_')}.json`; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url); } } catch (err) { console.error(err); showToast('Errore download', 'error'); } }}
+                                                    className="px-2 py-1 rounded-md bg-[#555D69] text-white text-xs flex items-center gap-1"
+                                                >
+                                                    <Download className="w-3 h-3" />
+                                                    <span className="hidden sm:inline">Scarica</span>
+                                                </button>
+                                                <button
+                                                    onClick={async () => { try { const { data: snapRes } = await supabase.from('archives').select('snapshot').eq('id', a.id).single(); const snap = snapRes?.snapshot; if (snap) { const sData = Array.isArray(snap.data) ? snap.data as Calculation[] : []; const sLevels = snap.levels && typeof snap.levels === 'object' ? snap.levels as Record<string, Level> : {}; const sParents = snap.parents && typeof snap.parents === 'object' ? snap.parents as Record<string, string | null> : {}; const sVers = snap.versInclude && typeof snap.versInclude === 'object' ? snap.versInclude as Record<string, boolean> : {}; setData(sData); setLevels(sLevels); setParents(sParents); setVersInclude(sVers); if (typeof window !== 'undefined') { localStorage.setItem('levels', JSON.stringify(sLevels)); localStorage.setItem('parents', JSON.stringify(sParents)); localStorage.setItem('versInclude', JSON.stringify(sVers)); } setArchivesModalOpen(false); showToast('Archivio caricato in tabella', 'success'); } } catch (err) { console.error(err); showToast('Errore caricando archivio', 'error'); } }}
+                                                    className="px-2 py-1 rounded-md bg-[#1E43B8] text-white text-xs flex items-center gap-1"
+                                                >
+                                                    <Upload className="w-3 h-3" />
+                                                    <span className="hidden sm:inline">Carica</span>
+                                                </button>
+                                                <button
+                                                    onClick={async () => { try { const { error } = await supabase.from('archives').delete().eq('id', a.id); if (error) throw error; await fetchArchives(); } catch (err) { console.error(err); showToast('Errore eliminando', 'error'); } }}
+                                                    className="px-2 py-1 rounded-md bg-red-600 text-white text-xs flex items-center gap-1"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                    <span className="hidden sm:inline">Elimina</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {confirmResetOpen && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                        <div className="bg-[#1F293B] text-white rounded-xl shadow-2xl w-full max-w-[95vw] sm:max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#1F293B]">
+                            <div className="px-6 py-4 border-b border-[#1F293B] flex items-center justify-between">
+                                <h3 className="text-lg font-semibold">Conferma Nuova Tabella</h3>
+                                <button onClick={() => setConfirmResetOpen(false)} className="p-2 rounded-md bg-[#555D69] text-white">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <p className="text-sm">Sei sicuro di voler azzerare la tabella? Assicurati di aver salvato un archivio prima di procedere.</p>
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setConfirmResetOpen(false)} className="px-3 py-2 rounded-md bg-[#555D69] text-white text-sm">Annulla</button>
+                                    <button
+                                        onClick={async () => { try { const { error } = await supabase.from('calculations').delete().not('id','is', null); if (error) throw error; setData([]); setLevels({}); setParents({}); setVersInclude({}); setExpanded({}); setSelectedHierarchyId(null); if (typeof window !== 'undefined') { localStorage.setItem('levels', JSON.stringify({})); localStorage.setItem('parents', JSON.stringify({})); localStorage.setItem('versInclude', JSON.stringify({})); } setConfirmResetOpen(false); showToast('Tabella azzerata', 'success'); } catch (err) { console.error(err); showToast('Errore azzerando tabella', 'error'); } }}
+                                        className="px-3 py-2 rounded-md bg-red-600 hover:bg-red-500 text-white text-sm"
+                                    >
+                                        Conferma
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {settingsModalOpen && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
                         <div className="bg-[#1F293B] text-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#1F293B]">
@@ -1455,24 +1443,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                 </button>
                             </div>
                             <div className="p-6 space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm">Colonna Azioni</span>
-                                    <label className="relative inline-flex items-center w-12 h-6 cursor-pointer">
-                                        <input type="checkbox" className="sr-only peer" checked={showActions} onChange={(e) => setShowActions(e.target.checked)} />
-                                        <span className="block w-12 h-6 rounded-full bg-slate-700 transition-colors peer-checked:bg-green-500"></span>
-                                        <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-6"></span>
-                                    </label>
-                                </div>
-                                <p className="text-xs text-slate-400">Di default è disabilitata.</p>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm">Button Esporta CSV</span>
-                                    <label className="relative inline-flex items-center w-12 h-6 cursor-pointer">
-                                        <input type="checkbox" className="sr-only peer" checked={csvEnabled} onChange={(e) => setCsvEnabled(e.target.checked)} />
-                                        <span className="block w-12 h-6 rounded-full bg-slate-700 transition-colors peer-checked:bg-green-500"></span>
-                                        <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-6"></span>
-                                    </label>
-                                </div>
-                                <p className="text-xs text-slate-400">Di default è disabilitato.</p>
+                                <div className="text-sm text-slate-300">Nessuna impostazione disponibile.</div>
                             </div>
                         </div>
                     </div>
@@ -1510,6 +1481,10 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                 <button onClick={async () => { await fetchAppUsers(); setUsersModalOpen(true); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-slate-800`}>
                                     <Users className="w-4 h-4" />
                                     Gestione Utenti
+                                </button>
+                                <button onClick={async () => { await fetchArchives(); setArchivesModalOpen(true); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-slate-800`}>
+                                    <Archive className="w-4 h-4" />
+                                    Archivio Tabelle
                                 </button>
                             </nav>
                             
