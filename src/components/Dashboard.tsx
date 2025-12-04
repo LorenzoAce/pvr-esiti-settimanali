@@ -1120,15 +1120,28 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                     </div>
             )}
 
-            <div className="fixed bottom-4 inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 z-40">
+            <div className="fixed bottom-4 inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 z-40 flex flex-col items-center gap-1">
+                {hierarchyBarOpen && (
+                    <div className={`${theme === 'light' ? 'bg-white/90 border-[#1E43B8]' : 'bg-[#1F293B]/90 border-white'} backdrop-blur-sm border px-3 py-2 rounded-2xl shadow-lg flex items-center justify-center`}> 
+                        <button
+                            onClick={() => setHierarchyBarOpen(false)}
+                            className={`${theme === 'light' ? 'bg-slate-200 text-black' : 'bg-[#4B5563] text-white'} border-[0.5px] border-[#888F96] p-1.5 rounded-md text-xs font-medium`}
+                            title="Nascondi barra"
+                        >
+                            <ChevronDown className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
                 <div className={`${theme === 'light' ? 'bg-white/90 border-[#1E43B8]' : 'bg-[#1F293B]/90 border-white'} backdrop-blur-sm border px-3 py-2 rounded-2xl shadow-lg flex items-center justify-center gap-2 overflow-x-auto w-full max-w-full md:max-w-[90vw] flex-wrap`}>
-                    <button
-                        onClick={() => setHierarchyBarOpen(!hierarchyBarOpen)}
-                        className={`${theme === 'light' ? 'bg-slate-200 text-black' : 'bg-[#4B5563] text-white'} border-[0.5px] border-[#888F96] p-1.5 rounded-md text-xs font-medium`}
-                        title={hierarchyBarOpen ? 'Nascondi barra' : 'Mostra barra'}
-                    >
-                        <ChevronDown className={`w-4 h-4 transition-transform ${hierarchyBarOpen ? '' : 'rotate-180'}`} />
-                    </button>
+                    {!hierarchyBarOpen && (
+                        <button
+                            onClick={() => setHierarchyBarOpen(true)}
+                            className={`${theme === 'light' ? 'bg-slate-200 text-black' : 'bg-[#4B5563] text-white'} border-[0.5px] border-[#888F96] p-1.5 rounded-md text-xs font-medium`}
+                            title="Mostra barra"
+                        >
+                            <ChevronDown className="w-4 h-4 rotate-180" />
+                        </button>
+                    )}
                     {hierarchyBarOpen && (
                         <>
                             {data.filter(d => ['master','agente','collaboratore'].includes((levels[d.id] ?? 'user'))).sort((a,b) => String(a.name ?? '').localeCompare(String(b.name ?? ''))).map(d => (

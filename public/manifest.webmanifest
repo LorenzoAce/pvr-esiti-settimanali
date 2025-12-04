@@ -1,0 +1,22 @@
+{
+  "name": "PVR - Esiti Settimanali",
+  "short_name": "PVR Esiti",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1F293B",
+  "theme_color": "#1E43B8",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
