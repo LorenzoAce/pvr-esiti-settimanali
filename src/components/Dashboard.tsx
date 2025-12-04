@@ -235,6 +235,24 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
         }
     }, []);
 
+    const cleanupSampleUsers = useCallback(async () => {
+        try {
+            const samples = ['user@example.com','demo@example.com','test@example.com','admin@example.com','example@example.com'];
+            const { data } = await supabase
+                .from('app_users')
+                .select('id,email')
+                .in('email', samples);
+            if (data && data.length > 0) {
+                const { error } = await supabase.from('app_users').delete().in('email', samples);
+                if (error) throw error;
+                await fetchAppUsers();
+                showToast('Utenze di esempio rimosse', 'success');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }, [fetchAppUsers]);
+
     const fetchProfile = useCallback(async () => {
         try {
             setProfileLoading(true);
@@ -279,6 +297,10 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     useEffect(() => {
         fetchProfile();
     }, [fetchProfile]);
+
+    useEffect(() => {
+        cleanupSampleUsers();
+    }, [cleanupSampleUsers]);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -1491,32 +1513,32 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                             <thead>
                                 <tr className="bg-green-800 dark:bg-emerald-900 border-b border-green-900 dark:border-emerald-950">
                                     <th className="px-4 py-4 text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap min-w-[96px]">
-                                        <GitBranch className="w-4 h-4 inline sm:hidden" />
-                                        <span className="hidden sm:inline">Livello</span>
+                                        <GitBranch className="w-4 h-4 inline mr-1" />
+                                        <span>Livello</span>
                                     </th>
                                     <th className="px-4 py-4 text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap min-w-[160px]">
-                                        <User className="w-4 h-4 inline sm:hidden" />
-                                        <span className="hidden sm:inline">Utente</span>
+                                        <User className="w-4 h-4 inline mr-1" />
+                                        <span>Utente</span>
                                     </th>
                                     <th className="px-4 py-4 text-xs font-semibold text-white uppercase tracking-wider text-right whitespace-nowrap min-w-[120px]">
-                                        <Minus className="w-4 h-4 inline sm:hidden" />
-                                        <span className="hidden sm:inline">Negativo</span>
+                                        <Minus className="w-4 h-4 inline mr-1" />
+                                        <span>Negativo</span>
                                     </th>
                                     <th className="px-4 py-4 text-xs font-semibold text-white uppercase tracking-wider text-right whitespace-nowrap min-w-[120px]">
-                                        <Shield className="w-4 h-4 inline sm:hidden" />
-                                        <span className="hidden sm:inline">Cauzione</span>
+                                        <Shield className="w-4 h-4 inline mr-1" />
+                                        <span>Cauzione</span>
                                     </th>
                                     <th className="px-4 py-4 text-xs font-semibold text-white uppercase tracking-wider text-right whitespace-nowrap min-w-[120px]">
-                                        <Upload className="w-4 h-4 inline sm:hidden" />
-                                        <span className="hidden sm:inline">Vers. Sett.</span>
+                                        <Upload className="w-4 h-4 inline mr-1" />
+                                        <span>Vers. Sett.</span>
                                     </th>
                                     <th className="px-4 py-4 text-xs font-semibold text-white uppercase tracking-wider text-right whitespace-nowrap min-w-[160px]">
-                                        <Wallet className="w-4 h-4 inline sm:hidden" />
-                                        <span className="hidden sm:inline">Disponibilità Conti Gioco</span>
+                                        <Wallet className="w-4 h-4 inline mr-1" />
+                                        <span>Disponibilità Conti Gioco</span>
                                     </th>
                                     <th className="px-6 py-4 text-xs font-semibold text-white uppercase tracking-wider text-right whitespace-nowrap min-w-[120px]">
-                                        <Calculator className="w-4 h-4 inline sm:hidden" />
-                                        <span className="hidden sm:inline">Risultato</span>
+                                        <Calculator className="w-4 h-4 inline mr-1" />
+                                        <span>Risultato</span>
                                     </th>
                                     {showActions && (
                                         <th className="px-4 py-4 text-xs font-semibold text-white uppercase tracking-wider text-center whitespace-nowrap min-w-[96px]">Azioni</th>
