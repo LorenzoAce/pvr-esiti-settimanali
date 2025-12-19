@@ -594,6 +594,42 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
         }
     };
 
+    const handleResetAgents = async () => {
+        if (!confirm('Sei sicuro di voler azzerare tutti i valori (Negativo, Cauzione, Versamenti, Disp.) per tutti gli AGENTI? Questa azione è irreversibile.')) return;
+        try {
+            const { error } = await supabase
+                .from('calculations')
+                .update({ 
+                    negativo: 0, 
+                    cauzione: 0, 
+                    versamenti_settimanali: 0, 
+                    disponibilita: 0 
+                })
+                .eq('level', 'agente');
+
+            if (error) throw error;
+            
+            setData(prev => prev.map(item => {
+                if ((levels[item.id] ?? 'user') === 'agente') {
+                    return { 
+                        ...item, 
+                        negativo: 0, 
+                        cauzione: 0, 
+                        versamenti_settimanali: 0, 
+                        disponibilita: 0 
+                    };
+                }
+                return item;
+            }));
+            
+            showToast('Valori agenti azzerati con successo', 'success');
+            setSettingsModalOpen(false);
+        } catch (err) {
+            console.error('Error resetting agents:', err);
+            showToast('Errore durante l\'azzeramento', 'error');
+        }
+    };
+
     const resetForm = () => {
         setNewName('');
         setNewNegativo('');
@@ -1451,6 +1487,16 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                         <span className="block w-12 h-6 rounded-full bg-slate-700 transition-colors peer-checked:bg-green-500"></span>
                                         <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-6"></span>
                                     </label>
+                                </div>
+                                <div className="pt-4 border-t border-slate-700">
+                                    <h4 className="text-sm font-semibold mb-3 text-slate-300">Azioni Rapide</h4>
+                                    <button
+                                        onClick={handleResetAgents}
+                                        className="w-full px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                        Azzera Tutti gli Agenti
+                                    </button>
                                 </div>
                             </div>
                         </div>
