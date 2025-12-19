@@ -764,6 +764,14 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                     <Trash2 className="w-4 h-4" />
                     <span className="hidden sm:inline">Nuova Tabella</span>
                 </button>
+                <button
+                    onClick={handleResetAgents}
+                    className="bg-orange-600 hover:bg-orange-500 text-white border-[0.5px] border-[#888F96] px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all shadow-sm"
+                    title="Azzera valori Agenti"
+                >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Reset Agenti</span>
+                </button>
                 
                 
 
@@ -805,20 +813,6 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                             const rr = calculateResult(n, c, v);
                             return { n, c, v, d, rr };
                         };
-
-                        const sumTree = (id: string) => {
-                            const base = valueOf(id);
-                            // Return base values directly, no totalization
-                            return { 
-                                negativo: base.n, 
-                                cauzione: base.c, 
-                                vers: base.v, 
-                                disp: base.d, 
-                                ris: base.rr 
-                            };
-                        };
-
-                        
 
                         const tableRows: Array<[string, string, number, number, number, number, number]> = [];
                         const rowDepths: number[] = [];
@@ -1487,16 +1481,6 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                         <span className="block w-12 h-6 rounded-full bg-slate-700 transition-colors peer-checked:bg-green-500"></span>
                                         <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-6"></span>
                                     </label>
-                                </div>
-                                <div className="pt-4 border-t border-slate-700">
-                                    <h4 className="text-sm font-semibold mb-3 text-slate-300">Azioni Rapide</h4>
-                                    <button
-                                        onClick={handleResetAgents}
-                                        className="w-full px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                        Azzera Tutti gli Agenti
-                                    </button>
                                 </div>
                             </div>
                         </div>
