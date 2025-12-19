@@ -450,12 +450,27 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
     };
     const sumTree = (id: string) => {
         const base = valueOf(id);
-        let negativo = base.n, cauzione = base.c, vers = base.v, disp = base.d, ris = base.rr;
+        const lvl = levels[id] ?? 'user';
+        // 'master', 'agente', 'collaboratore' do NOT totalize negativo from children
+        const skipNegativoTotal = ['master', 'agente', 'collaboratore'].includes(lvl);
+
+        let negativo = base.n;
+        let cauzione = base.c;
+        let vers = base.v;
+        let disp = base.d;
+        
         const kids = childrenOf[id] || [];
         kids.forEach(kid => {
             const s = sumTree(kid);
-            negativo += s.negativo; cauzione += s.cauzione; vers += s.vers; disp += s.disp; ris += s.ris;
+            if (!skipNegativoTotal) {
+                negativo += s.negativo;
+            }
+            cauzione += s.cauzione;
+            vers += s.vers;
+            disp += s.disp;
         });
+        
+        const ris = calculateResult(negativo, cauzione, vers);
         return { negativo, cauzione, vers, disp, ris };
     };
     const collect = (acc: Array<{ row: Calculation; depth: number }>, id: string, lvl: Level, depth: number) => {
@@ -1611,7 +1626,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
                                                 </div>
                                             </td>
                                             <td className="px-4 py-2 text-red-400 whitespace-nowrap">
-                                                {hasChildren ? (
+                                                {hasChildren && !['master', 'agente', 'collaboratore'].includes((levels[row.id] ?? 'user')) ? (
                                                     <span className="font-mono block text-right">{totals!.negativo.toFixed(2)}</span>
                                                 ) : (
                                                     <EditableCell
