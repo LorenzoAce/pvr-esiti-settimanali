@@ -470,115 +470,7 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
             cauzione += s.cauzione;
         });
         
-        // For Master/Agente/Collaboratore, the logic is: ris = cauzione - negativo - vers
-        // For others (and for the recursive total calculation above if not skipped), it stays: ris = neg + cauz + vers (where neg is already negative)
-        let ris: number;
-        if (['master', 'agente', 'collaboratore'].includes(lvl)) {
-             // Negativo is stored as negative number, so (- negativo) becomes positive if we subtract a negative number.
-             // BUT user asked for "cauzione - negativo - vers.settimanali".
-             // Assuming "negativo" here refers to the absolute value or the column named 'Negativo'.
-             // In database/state 'negativo' is usually stored as negative number (e.g. -100).
-             // If the formula is literally "cauzione - (Negativo Column) - Versamenti", and Negativo Column is -100:
-             // cauzione - (-100) - vers = cauzione + 100 - vers.
-             // If "negativo" in the formula means the concept of debt (positive number), then:
-             // cauzione - abs(negativo) - vers.
-             // Given previous logic was "neg + cauz + vers", and neg was negative.
-             // Let's stick to the request: "cauzione - negativo - vers.settimanali".
-             // If 'negativo' variable holds -100. Then cauzione - (-100) - vers.
-             // Wait, if I edit 'Negativo' cell with '100', the code stores it as -100 (see handleUpdate).
-             // So 'negativo' variable is < 0.
-             // If the user means "Balance = Security Deposit - Debt - Payments", then:
-             // Security Deposit (Cauzione) is (+).
-             // Debt (Negativo) is usually (-) in the system but (+) in concept.
-             // Payments (Versamenti) are (+).
-             // If I have Cauzione=1000, Negativo=-200 (Debt 200), Versamenti=300.
-             // Formula "cauzione - negativo - vers" -> 1000 - (-200) - 300 = 1000 + 200 - 300 = 900.
-             // This increases the result by the debt amount.
-             //
-             // Standard logic (calculateResult): neg + cauz + vers -> -200 + 1000 + 300 = 1100.
-             //
-             // Let's interpret "cauzione - negativo - vers.settimanali" carefully.
-             // Maybe "negativo" refers to the *value* in the column, which is displayed as positive?
-             // No, displayed as negative in previous code: {totals!.negativo.toFixed(2)}.
-             // Wait, the column displays `row.negativo` which is negative.
-             //
-             // Let's try to assume the user wants to subtract the *amount* of 'Negativo' and 'Versamenti' from 'Cauzione'.
-             // If 'Negativo' is -200 (meaning 200 debt).
-             // "Cauzione - Negativo - Versamenti"
-             // If it means "Cauzione - |Negativo| - Versamenti":
-             // 1000 - 200 - 300 = 500.
-             //
-             // If it means "Cauzione - (raw Negativo) - Versamenti":
-             // 1000 - (-200) - 300 = 900.
-             //
-             // Given the context of "Result", usually it's "What is left".
-             // If I have 1000 deposit. I have 200 debt. I paid 300.
-             // Result should probably be 1000 (deposit) - 200 (debt) + 300 (payment)? No.
-             // Result = 1000 (deposit) + 300 (payment) - 200 (debt) = 1100?
-             //
-             // Let's look at the previous `calculateResult` = `neg + cauz + vers`.
-             // If neg=-200, cauz=1000, vers=300. Result = 1100.
-             //
-             // User says: "cauzione - negativo - vers.settimanali".
-             // If I use the variables as they are:
-             // Cauzione (1000) - Negativo (-200) - Versamenti (300) = 1000 + 200 - 300 = 900.
-             //
-             // If I assume "negativo" in user speech means the *absolute* value (debt):
-             // Cauzione (1000) - Debt (200) - Versamenti (300) = 500.
-             //
-             // Let's check `valueOf`.
-             // `const n = Number(r?.negativo ?? 0);` -> stored as negative.
-             //
-             // I will implement "cauzione - negativo - vers" literally using the stored values first, but suspecting 'negativo' might imply absolute value if it's a debt.
-             // However, `negativo` variable is negative. `cauzione` is positive. `vers` is positive.
-             // `cauzione - negativo - vers` = `cauzione + abs(negativo) - vers`.
-             //
-             // If the user meant "Cauzione MINUS Debt MINUS Versamenti", then it should be `cauzione + negativo - vers` (since negativo is negative).
-             //
-             // Let's consider the user might be referring to the columns visually.
-             // If column Negativo shows "-200".
-             // "Cauzione - Negativo" -> 1000 - (-200) = 1200.
-             //
-             // Let's try to use the *absolute* value of Negativo if the intention is to subtract the debt.
-             // "Cauzione - (Debt) - Versamenti".
-             // Debt = abs(negativo).
-             // Res = cauzione - abs(negativo) - vers.
-             //
-             // BUT, if I strictly follow "cauzione - negativo - vers.settimanali" with the variable names:
-             // It is `cauzione - negativo - vers`.
-             //
-             // Let's look at the previous formula: `neg + cauz + vers`.
-             // -200 + 1000 + 300 = 1100.
-             //
-             // New request: "cauzione - negativo - vers.settimanali".
-             // If I use raw values: 1000 - (-200) - 300 = 900.
-             //
-             // It changes the sign of 'negativo' (effectively adding the debt amount) and subtracts 'versamenti'.
-             //
-             // Wait, maybe 'Versamenti' are outgoing?
-             // Usually 'Versamenti' are payments made BY the user TO the system (positive).
-             // 'Cauzione' is deposit (positive).
-             // 'Negativo' is loss/debt (negative).
-             //
-             // If I am a Master.
-             // I have a Deposit (Cauzione) of 1000.
-             // I have a Negative (Loss) of -200.
-             // I have Payments (Versamenti) of 300.
-             //
-             // If "cauzione - negativo - vers" = 1000 - (-200) - 300 = 900.
-             //
-             // If I assume user meant "Cauzione minus (Absolute Negativo) minus Versamenti":
-             // 1000 - 200 - 300 = 500.
-             //
-             // Let's assume the user knows math and variable names.
-             // "cauzione - negativo - vers.settimanali".
-             // I will implement exactly this with the variables I have.
-             
-             ris = cauzione - negativo - vers;
-        } else {
-             ris = calculateResult(negativo, cauzione, vers);
-        }
-        
+        const ris = calculateResult(negativo, cauzione, vers);
         return { negativo, cauzione, vers, disp, ris };
     };
     const collect = (acc: Array<{ row: Calculation; depth: number }>, id: string, lvl: Level, depth: number) => {
@@ -904,12 +796,26 @@ export function Dashboard({ theme, onToggleTheme }: { theme: 'light' | 'dark'; o
 
                         const sumTree = (id: string) => {
                             const base = valueOf(id);
-                            let negativo = base.n, cauzione = base.c, vers = base.v, disp = base.d, ris = base.rr;
+                            const lvl = levels[id] ?? 'user';
+                            const skipTotal = ['master', 'agente', 'collaboratore'].includes(lvl);
+
+                            let negativo = base.n;
+                            let cauzione = base.c;
+                            let vers = base.v;
+                            let disp = base.d;
+
                             const kids = childrenOf[id] || [];
                             kids.forEach(kid => {
                                 const s = sumTree(kid);
-                                negativo += s.negativo; cauzione += s.cauzione; vers += s.vers; disp += s.disp; ris += s.ris;
+                                if (!skipTotal) {
+                                    negativo += s.negativo;
+                                    vers += s.vers;
+                                    disp += s.disp;
+                                }
+                                cauzione += s.cauzione;
                             });
+                            
+                            const ris = calculateResult(negativo, cauzione, vers);
                             return { negativo, cauzione, vers, disp, ris };
                         };
 
